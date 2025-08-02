@@ -1,7 +1,7 @@
-module.exports = {
+const dbConfig = {
   HOST: "localhost",
   USER: "root",
-  PASSWORD: "123456",
+  PASSWORD: "ejaz123",
   DB: "testdb",
   dialect: "mysql",
   pool: {
@@ -11,3 +11,5 @@ module.exports = {
     idle: 10000
   }
 };
+
+export default dbConfig;

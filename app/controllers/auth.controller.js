@@ -1,16 +1,31 @@
-const db = require("../models");
-const config = require("../config/auth.config");
+import validator from "validator";
+import db from "../models/index.js";
+import config from "../config/auth.config.js";
+import jwt from "jsonwebtoken";
+import bcrypt from "bcryptjs";
+
 const User = db.user;
 const Role = db.role;
-
 const Op = db.Sequelize.Op;
 
-const jwt = require("jsonwebtoken");
-const bcrypt = require("bcryptjs");
-
-exports.signup = async (req, res) => {
-  // Save User to Database
+export const signup = async (req, res) => {
   try {
+    if (!validator.isEmail(req.body.email)) {
+      return res.status(400).send({ message: "Invalid email format" });
+    }
+
+    if (!validator.isStrongPassword(req.body.password, {
+      minLength: 8,
+      minLowercase: 1,
+      minUppercase: 1,
+      minNumbers: 1,
+      minSymbols: 1
+    })) {
+      return res.status(400).send({
+        message: "Password is too weak. Use at least 8 characters, with uppercase, lowercase, number, and special character."
+      });
+    }
+
     const user = await User.create({
       username: req.body.username,
       email: req.body.email,
@@ -26,75 +41,62 @@ exports.signup = async (req, res) => {
         },
       });
 
-      const result = user.setRoles(roles);
-      if (result) res.send({ message: "User registered successfully!" });
+      await user.setRoles(roles);
     } else {
-      // user has role = 1
-      const result = user.setRoles([1]);
-      if (result) res.send({ message: "User registered successfully!" });
+      await user.setRoles([1]); // Default role
     }
+
+    res.send({ message: "User registered successfully!" });
+
   } catch (error) {
     res.status(500).send({ message: error.message });
   }
 };
 
-exports.signin = async (req, res) => {
+export const signin = async (req, res) => {
   try {
     const user = await User.findOne({
-      where: {
-        username: req.body.username,
-      },
+      where: { username: req.body.username },
     });
 
     if (!user) {
       return res.status(404).send({ message: "User Not found." });
     }
 
-    const passwordIsValid = bcrypt.compareSync(
-      req.body.password,
-      user.password
-    );
+    const passwordIsValid = bcrypt.compareSync(req.body.password, user.password);
 
     if (!passwordIsValid) {
-      return res.status(401).send({
-        message: "Invalid Password!",
-      });
+      return res.status(401).send({ message: "Invalid Password!" });
     }
 
-    const token = jwt.sign({ id: user.id },
-                           config.secret,
-                           {
-                            algorithm: 'HS256',
-                            allowInsecureKeySizes: true,
-                            expiresIn: 86400, // 24 hours
-                           });
-
-    let authorities = [];
+    const token = jwt.sign({ id: user.id }, config.secret, {
+      algorithm: 'HS256',
+      allowInsecureKeySizes: true,
+      expiresIn: 86400, // 24 hours
+    });
     const roles = await user.getRoles();
-    for (let i = 0; i < roles.length; i++) {
-      authorities.push("ROLE_" + roles[i].name.toUpperCase());
-    }
+    const authorities = roles.map(role => "ROLE_" + role.name.toUpperCase());
 
     req.session.token = token;
 
-    return res.status(200).send({
+    res.status(200).send({
       id: user.id,
       username: user.username,
       email: user.email,
       roles: authorities,
+      accesstoken: token,
     });
+
   } catch (error) {
-    return res.status(500).send({ message: error.message });
+    res.status(500).send({ message: error.message });
   }
 };
 
-exports.signout = async (req, res) => {
+export const signout = async (req, res) => {
   try {
     req.session = null;
-    return res.status(200).send({
-      message: "You've been signed out!"
-    });
+    res.status(200).send({ message: "You've been signed out!" });
   } catch (err) {
-    this.next(err);
+    res.status(500).send({ message: "Unable to sign out!" });
   }
 };

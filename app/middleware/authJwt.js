@@ -1,9 +1,10 @@
-const jwt = require("jsonwebtoken");
-const config = require("../config/auth.config.js");
-const db = require("../models");
+import jwt from "jsonwebtoken";
+import config from "../config/auth.config.js";
+import db from "../models/index.js";
+
 const User = db.user;
 
-verifyToken = (req, res, next) => {
+export const verifyToken = (req, res, next) => {
   let token = req.session.token;
 
   if (!token) {
@@ -12,20 +13,18 @@ verifyToken = (req, res, next) => {
     });
   }
 
-  jwt.verify(token,
-             config.secret,
-             (err, decoded) => {
-              if (err) {
-                return res.status(401).send({
-                  message: "Unauthorized!",
-                });
-              }
-              req.userId = decoded.id;
-              next();
-             });
+  jwt.verify(token, config.secret, (err, decoded) => {
+    if (err) {
+      return res.status(401).send({
+        message: "Unauthorized!",
+      });
+    }
+    req.userId = decoded.id;
+    next();
+  });
 };
 
-isAdmin = async (req, res, next) => {
+export const isAdmin = async (req, res, next) => {
   try {
     const user = await User.findByPk(req.userId);
     const roles = await user.getRoles();
@@ -46,7 +45,7 @@ isAdmin = async (req, res, next) => {
   }
 };
 
-isModerator = async (req, res, next) => {
+export const isModerator = async (req, res, next) => {
   try {
     const user = await User.findByPk(req.userId);
     const roles = await user.getRoles();
@@ -67,17 +66,13 @@ isModerator = async (req, res, next) => {
   }
 };
 
-isModeratorOrAdmin = async (req, res, next) => {
+export const isModeratorOrAdmin = async (req, res, next) => {
   try {
     const user = await User.findByPk(req.userId);
     const roles = await user.getRoles();
 
     for (let i = 0; i < roles.length; i++) {
-      if (roles[i].name === "moderator") {
-        return next();
-      }
-
-      if (roles[i].name === "admin") {
+      if (roles[i].name === "moderator" || roles[i].name === "admin") {
         return next();
       }
     }
@@ -91,11 +86,3 @@ isModeratorOrAdmin = async (req, res, next) => {
     });
   }
 };
-
-const authJwt = {
-  verifyToken,
-  isAdmin,
-  isModerator,
-  isModeratorOrAdmin,
-};
-module.exports = authJwt;

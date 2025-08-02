@@ -1,19 +1,20 @@
-const config = require("../config/db.config.js");
-
-const Sequelize = require("sequelize");
+import dbConfig from "../config/db.config.js";
+import Sequelize from "sequelize";
+import initUser from "./user.model.js";
+import initRole from "./role.model.js";
 const sequelize = new Sequelize(
-  config.DB,
-  config.USER,
-  config.PASSWORD,
+  dbConfig.DB,
+  dbConfig.USER,
+  dbConfig.PASSWORD,
   {
-    host: config.HOST,
-    dialect: config.dialect,
+    host: dbConfig.HOST,
+    dialect: dbConfig.dialect,
     pool: {
-      max: config.pool.max,
-      min: config.pool.min,
-      acquire: config.pool.acquire,
-      idle: config.pool.idle
-    }
+      max: dbConfig.pool.max,
+      min: dbConfig.pool.min,
+      acquire: dbConfig.pool.acquire,
+      idle: dbConfig.pool.idle,
+    },
   }
 );
 
@@ -22,16 +23,16 @@ const db = {};
 db.Sequelize = Sequelize;
 db.sequelize = sequelize;
 
-db.user = require("../models/user.model.js")(sequelize, Sequelize);
-db.role = require("../models/role.model.js")(sequelize, Sequelize);
+db.user = initUser(sequelize, Sequelize);
+db.role = initRole(sequelize, Sequelize);
 
 db.role.belongsToMany(db.user, {
-  through: "user_roles"
+  through: "user_roles",
 });
 db.user.belongsToMany(db.role, {
-  through: "user_roles"
+  through: "user_roles",
 });
 
 db.ROLES = ["user", "admin", "moderator"];
 
-module.exports = db;
+export default db;

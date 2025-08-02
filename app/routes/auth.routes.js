@@ -1,8 +1,12 @@
-const { verifySignUp } = require("../middleware");
-const controller = require("../controllers/auth.controller");
+import { authJwt } from "../middleware/index.js";
+import { verifySignUp } from "../middleware/verifySignUp.js";
+import { signup, signin, signout } from "../controllers/auth.controller.js";
 
-module.exports = function(app) {
-  app.use(function(req, res, next) {
+
+console.log("signup loaded:", typeof signup); // should log: "function"
+console.log("verifySignUp:", verifySignUp);
+export default function (app) {
+  app.use(function (req, res, next) {
     res.header(
       "Access-Control-Allow-Headers",
       "Origin, Content-Type, Accept"
@@ -16,10 +20,9 @@ module.exports = function(app) {
       verifySignUp.checkDuplicateUsernameOrEmail,
       verifySignUp.checkRolesExisted
     ],
-    controller.signup
+    signup
   );
 
-  app.post("/api/auth/signin", controller.signin);
-
-  app.post("/api/auth/signout", controller.signout);
-};
+  app.post("/api/auth/signin", signin);
+  app.post("/api/auth/signout", signout);
+}

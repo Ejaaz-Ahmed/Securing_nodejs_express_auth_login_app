@@ -1,8 +1,14 @@
-const express = require("express");
-const cors = require("cors");
-const cookieSession = require("cookie-session");
+
+import helmet from "helmet";
+
+import express, { json, urlencoded } from "express";
+import cors from "cors";
+import cookieSession from "cookie-session";
 
 const app = express();
+
+app.use(helmet());
+
 
 app.use(cors());
 /* for Angular Client (withCredentials) */
@@ -14,10 +20,10 @@ app.use(cors());
 // );
 
 // parse requests of content-type - application/json
-app.use(express.json());
+app.use(json());
 
 // parse requests of content-type - application/x-www-form-urlencoded
-app.use(express.urlencoded({ extended: true }));
+app.use(urlencoded({ extended: true }));
 
 app.use(
   cookieSession({
@@ -29,10 +35,11 @@ app.use(
 );
 
 // database
-const db = require("./app/models");
-const Role = db.role;
+import db from "./app/models/index.js";
+const { role, sequelize } = db;
+const Role = role;
 
-db.sequelize.sync();
+sequelize.sync();
 // force: true will drop the table if it already exists
 // db.sequelize.sync({force: true}).then(() => {
 //   console.log('Drop and Resync Database with { force: true }');
@@ -41,12 +48,17 @@ db.sequelize.sync();
 
 // simple route
 app.get("/", (req, res) => {
-  res.json({ message: "Welcome to bezkoder application." });
+  res.json({ message: "Welcome to bezkoder application. All the vulnerabilities of this app will be removed by EJAZ AHMED" });
 });
 
 // routes
-require("./app/routes/auth.routes")(app);
-require("./app/routes/user.routes")(app);
+import authRoutes from "./app/routes/auth.routes.js";
+import userRoutes from "./app/routes/user.routes.js";
+
+authRoutes(app);
+userRoutes(app);
+
+
 
 // set port, listen for requests
 const PORT = process.env.PORT || 8080;
