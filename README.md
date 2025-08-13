@@ -132,6 +132,33 @@ This project is based on:
 
 ---
 
+## Updates – Advanced Security & Final Reporting
+
+I enhanced the **Node.js Express Authentication App** by performing advanced security hardening, logging setup, and penetration testing.  
+
+### 🔹 Security Enhancements
+- **Brute Force Protection** – Implemented rate limiting to block excessive failed login attempts.
+- **Winston Logging** – Added `winston` logger to record security-related events in both console and `security.log`.
+- **Basic Penetration Testing** – Used Nmap to scan service details and checked for unnecessary exposure.
+- **Role Escalation Protection** – Verified that non-admin tokens cannot access admin routes.
+- **Strong Validation** – Continued enforcing strong password & email validation using `validator`.
+- **Helmet.js Middleware** – Applied HTTP security headers to mitigate common vulnerabilities.
+- **HTTPS Recommendation** – App is ready to run behind HTTPS for secure data transmission.
+
+### 🔹 Documentation
+- Updated **Security Checklist** confirming all measures applied.
+- Added **Final Detailed Documentation** for Week 3 work.
+
+### 🔹 Tools Used
+- **Postman** – API testing and role escalation checks.
+- **Nmap** – Port scanning & service fingerprinting.
+- **Winston** – Security and application logging.
+
+---
+
+**Outcome:**  
+The application is now more secure, logs critical events, and prevents unauthorized role access & brute-force attacks. All checklist items are marked as passed.
+
 ## Author
 
 **Ejaz Ahmed**  
