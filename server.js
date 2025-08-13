@@ -82,3 +82,5 @@ function initial() {
     name: "admin",
   });
 }
+import logger from "./app/logger.js";
+logger.info("Application started on port 8080");
