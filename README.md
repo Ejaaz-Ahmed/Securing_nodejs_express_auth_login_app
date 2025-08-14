@@ -62,8 +62,8 @@ This app supports:
 ### Clone the Repository
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/YOUR_REPO_NAME.git
-cd YOUR_REPO_NAME
+git clone https://github.com/YOUR_USERNAME/YOUR_REPO_NAME.git (repo URL)
+cd YOUR_REPO_NAME (Repo Name)
 ```
 
 ### Install Dependencies
