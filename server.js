@@ -7,10 +7,11 @@ import cookieSession from "cookie-session";
 
 const app = express();
 
+import { globalLimiter } from './app/middleware/rateLimit.js';
+app.use(globalLimiter);
+
 app.use(helmet());
 
-
-app.use(cors());
 /* for Angular Client (withCredentials) */
 // app.use(
 //   cors({
@@ -82,5 +83,25 @@ function initial() {
     name: "admin",
   });
 }
+
+import { corsOptions } from './app/config/cors.config.js';
+
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions)); // preflight
+
+import { securityHeaders, hstsOptions } from './app/middleware/securityHeaders.js';
+app.use(securityHeaders);
+app.use(helmet.hsts(hstsOptions));
+
+
+import requestLogger from "./app/middleware/requestLogger.js";
+app.use(requestLogger);
+
+
 import logger from "./app/logger.js";
-logger.info("Application started on port 8080");
+logger.info(`Application started on port ${PORT}`);
+
+app.use((err, req, res, next) => {
+  logger.error(`Unhandled Error: ${err.message}`, { stack: err.stack });
+  res.status(500).json({ message: "Something went wrong!" });
+});
