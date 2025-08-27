@@ -24,16 +24,6 @@ Example (string log):
 
 2025-08-26 20:54:09 [warn]: login attempt from ::ffff:10.0.2.2 - reason: Invalid password - username: test
 
-
-## ⚙️ Fail2Ban Filter Configuration
-
-**File Location:** `/etc/fail2ban/filter.d/node-auth-string.conf`
-
-```ini
-[Definition]
-failregex = ^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} \[warn\]: login attempt from <HOST> - reason: Invalid password - username: .+$
-ignoreregex =
-```
 # Fail2ban Configuration for Node.js Authentication
 
 This repository contains a Fail2ban configuration to protect Node.js applications from brute force login attempts.
