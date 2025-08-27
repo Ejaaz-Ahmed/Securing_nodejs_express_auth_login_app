@@ -1,134 +1,112 @@
 # Secure Node.js Express Login & Registration with JWT – Enhanced Version by Ejaz Ahmed
+# 🔒 Week 4 – Threat Detection with Fail2ban
 
-This is an enhanced, secure, and modernized version of the original [Bezkoder's Node.js Express JWT Authentication Example](https://www.bezkoder.com/node-js-express-login-example/). It includes improvements for security, code quality, and ES module support.
-
----
-
-## What’s Improved in This Fork
-
--  **Converted all code to ES Modules (import/export)**
--  **Added strong email & password validation using [`validator`](https://www.npmjs.com/package/validator)**
--  **Secured routes with `helmet`, `cookie-session`, and CORS headers**
--  **Enforced Foreign Key constraints in MySQL with Sequelize**
--  **Sanitized input to prevent weak credentials**
--  **Improved Role-based Access Control (User / Admin / Moderator)**
--  **Resolved all Sequelize sync issues (e.g., `createdAt`/`updatedAt` not null)**
--  **Removed vulnerabilities present in original version**
--  **Rewritten with clean, modular ES syntax**
+This feature branch (`feat/week4-threat-detection`) introduces **real-time intrusion detection** for our Node.js Express authentication app.  
+It integrates **Fail2ban** with app logs to detect repeated failed login attempts and automatically block suspicious IPs.
 
 ---
 
-## Folder Structure
+## 📌 Objectives
+- Monitor authentication logs for repeated login failures.
+- Detect brute-force attempts in real time.
+- Automatically ban malicious IPs using Fail2ban.
+- Keep logs both **JSON structured** and **human-readable string format**.
+
+---
+
+## 📝 Log Configuration
+
+The app generates two types of logs using **Winston**:
+- **JSON logs** → `logs/security-%DATE%.log`
+- **String logs** → `logs/security-string-%DATE%.log`
+
+Example (string log):
+
+2025-08-26 20:54:09 [warn]: login attempt from ::ffff:10.0.2.2 - reason: Invalid password - username: test
+
+
+## ⚙️ Fail2Ban Filter Configuration
+
+**File Location:** `/etc/fail2ban/filter.d/node-auth-string.conf`
+
+```ini
+[Definition]
+failregex = ^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} \[warn\]: login attempt from <HOST> - reason: Invalid password - username: .+$
+ignoreregex =
+```
+# Fail2ban Configuration for Node.js Authentication
+
+This repository contains a Fail2ban configuration to protect Node.js applications from brute force login attempts.
+
+## 📝 Sample Log Entry
 
 ```
-├── app/
-│   ├── controllers/
-│   ├── middleware/
-│   ├── models/
-│   └── routes/
-├── config/
-├── server.js
-├── package.json
+2025-08-26 20:54:09 [warn]: login attempt from ::ffff:10.0.2.2 - reason: Invalid password - username: test
 ```
 
 ---
 
-## Technologies Used
+## ⚙️ Fail2ban Filter
 
-- Node.js
-- Express.js
-- Sequelize ORM
-- MySQL
-- JSON Web Token (JWT)
-- cookie-session
-- validator
-- helmet
+Created at:  
+`/etc/fail2ban/filter.d/node-auth-string.conf`
 
----
+```ini
+[Definition]
+failregex = ^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} \[warn\]: login attempt from <HOST> - reason: Invalid password - username: .+$
+ignoreregex =
+```
 
-## Authentication & Authorization Flow
+## ⚙️ Fail2ban Jail
 
-This app supports:
+Configured in: `/etc/fail2ban/jail.local`
 
--  Signup with email and secure password
--  JWT-based login, stored securely in cookie-session
--  Admin, Moderator, and User role-based access
--  Logout support (session destruction)
+```ini
+[node-auth-string]
+enabled  = true
+filter   = node-auth-string
+logpath  = /home/ejazahmed/Securing_nodejs_express_auth_login_app/logs/security-string-*.log
+maxretry = 3
+findtime = 600
+bantime  = 3600
+```
 
----
+## 🔎 Configuration Explanation
 
-## Project Setup
+- **`maxretry = 3`** → Block IP after 3 failed login attempts
+- **`findtime = 600`** → Monitor failed attempts within 10 minutes (600 seconds)
+- **`bantime = 3600`** → Ban duration lasts 1 hour (3600 seconds)
 
-### Clone the Repository
+## ▶️ Testing the Filter
+
+Run this command to verify that Fail2ban correctly matches your log entries:
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/YOUR_REPO_NAME.git
-cd YOUR_REPO_NAME
+sudo fail2ban-regex /home/ejazahmed/Securing_nodejs_express_auth_login_app/logs/security-string-*.log /etc/fail2ban/filter.d/node-auth-string.conf
 ```
 
-### Install Dependencies
+## 🚀 Usage
 
-```bash
-npm install
-```
+1. Copy the filter configuration to `/etc/fail2ban/filter.d/node-auth-string.conf`
+2. Add the jail configuration to `/etc/fail2ban/jail.local`
+3. Restart Fail2ban service:
+   ```bash
+   sudo systemctl restart fail2ban
+   ```
+4. Check the status:
+   ```bash
+   sudo fail2ban-client status node-auth-string
+   ```
 
-### Configure Database
+## 📋 Requirements
 
-Edit `config/db.config.js` with your MySQL credentials:
-
-```js
-export default {
-  HOST: "localhost",
-  USER: "your_mysql_user",
-  PASSWORD: "your_mysql_password",
-  DB: "your_db_name",
-  dialect: "mysql",
-  pool: {
-    max: 5,
-    min: 0,
-    acquire: 30000,
-    idle: 10000
-  }
-};
-```
-
-### Start the Server
-
-```bash
-node server.js
-```
+- Fail2ban installed on your system
+- Node.js application logging failed login attempts in the specified format
+- Appropriate log file permissions for Fail2ban to read
 
 ---
 
-## API Endpoints
-
-| Method | Endpoint             | Description            |
-|--------|----------------------|------------------------|
-| POST   | `/api/auth/signup`   | Register a new user    |
-| POST   | `/api/auth/signin`   | Login and get JWT      |
-| POST   | `/api/auth/signout`  | Destroy user session   |
-| GET    | `/api/test/user`     | Access User board      |
-| GET    | `/api/test/admin`    | Access Admin board     |
-| GET    | `/api/test/mod`      | Access Moderator board |
-
----
-
-## Reference to Original Repo
-
-This project is based on:
-
-🔗 [Bezkoder Node.js JWT Auth Example](https://www.bezkoder.com/node-js-express-login-example/)
-
-> This fork enhances it with security hardening, ES modules, and project structure improvements.
-
----
-
-## Future Enhancements
-
-- Add rate limiting / brute-force protection
-- Add CSRF token in cookies
-- Add frontend (React/Vue/Angular) clients
-- Unit testing with Jest
+*This configuration helps protect your Node.js authentication system from brute force attacks by automatically blocking suspicious IP addresses.*
 
 ---
 
