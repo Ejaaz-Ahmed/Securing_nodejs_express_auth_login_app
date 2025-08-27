@@ -1,8 +1,8 @@
 const dbConfig = {
   HOST: "localhost",
-  USER: "root",
-  PASSWORD: "ejaz123",
-  DB: "testdb",
+  USER: "ejaz",
+  PASSWORD: "yourpassword",
+  DB: "secure_auth_db",
   dialect: "mysql",
   pool: {
     max: 5,

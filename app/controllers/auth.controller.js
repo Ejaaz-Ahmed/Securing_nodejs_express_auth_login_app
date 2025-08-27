@@ -63,6 +63,8 @@ export const signin = async (req, res) => {
         username: req.body.username,
         status: "failed",
         reason: "Invalid password",
+        username: req.body.username,
+        ip: req.ip, // log IP for Fail2Ban
       });
 
       return res.status(401).send({
