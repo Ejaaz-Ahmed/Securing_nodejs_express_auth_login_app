@@ -100,6 +100,14 @@ sudo fail2ban-regex /home/ejazahmed/Securing_nodejs_express_auth_login_app/logs/
 
 ---
 
+flowchart LR
+    A[👨‍💻 User Login Attempt] --> B[📄 String Log Entry]
+    B --> C[🔍 Fail2ban Filter (Regex Match)]
+    C -->|Failed login detected| D[🚨 Jail Triggered]
+    D --> E[⛔ IP Banned]
+    C -->|No match| F[✅ Request Allowed]
+
+
 ## Author
 
 **Ejaz Ahmed**  
