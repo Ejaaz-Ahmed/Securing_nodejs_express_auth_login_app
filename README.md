@@ -4,160 +4,178 @@ This is an enhanced, secure, and modernized version of the original [Bezkoder's 
 
 ---
 
-## What’s Improved in This Fork
+# Week 5: Ethical Hacking & Exploiting Vulnerabilities
 
--  **Converted all code to ES Modules (import/export)**
--  **Added strong email & password validation using [`validator`](https://www.npmjs.com/package/validator)**
--  **Secured routes with `helmet`, `cookie-session`, and CORS headers**
--  **Enforced Foreign Key constraints in MySQL with Sequelize**
--  **Sanitized input to prevent weak credentials**
--  **Improved Role-based Access Control (User / Admin / Moderator)**
--  **Resolved all Sequelize sync issues (e.g., `createdAt`/`updatedAt` not null)**
--  **Removed vulnerabilities present in original version**
--  **Rewritten with clean, modular ES syntax**
+## 🎯 Goal
+The purpose of this week’s task was to practice ethical hacking techniques on a deliberately vulnerable Node.js application (**OWASP Juice Shop**), exploit common web vulnerabilities, and then understand how to mitigate them in real-world applications.
 
 ---
 
-## Folder Structure
+## 🛠 Tools Used
+- **Kali Linux / Parrot OS (or attacker VM)**
+- **OWASP Juice Shop** (running locally at `http://127.0.0.1:3001`)
+- **Burp Suite Community Edition** (proxy, repeater, intruder)
+- **SQLMap** (for automated SQLi detection and exploitation)
+- **Browser** (with Burp Proxy certificate installed for HTTPS interception)
+
+---
+
+## 🔍 Step 1: Ethical Hacking Basics
+
+### 1. Setting Up the Environment
+- Launched OWASP Juice Shop using Docker:
+  ```bash
+  docker run --rm -p 3001:3000 bkimminich/juice-shop
+# Burp Suite Configuration and Reconnaissance
+
+## 1. Initial Setup
+
+* Confirmed Juice Shop was accessible at: 👉 `http://127.0.0.1:3001`
+
+## 2. Configuring Burp Suite
+
+* Opened **Burp Suite → Proxy → Options → Proxy Listeners**, confirmed default listener on `127.0.0.1:8080`.
+* Set browser proxy:
+  * Firefox/Chrome → Settings → Proxy → Manual → HTTP Proxy `127.0.0.1`, Port `8080`.
+* Installed Burp CA certificate:
+  * Navigated to `http://burp` in the browser.
+  * Downloaded and imported into browser **Trusted Root CA** to avoid HTTPS warnings.
+
+## 3. Reconnaissance
+
+* Logged into Juice Shop with a test account:
 
 ```
-├── app/
-│   ├── controllers/
-│   ├── middleware/
-│   ├── models/
-│   └── routes/
-├── config/
-├── server.js
-├── package.json
+test1@gmail.com / test123
 ```
 
----
+* With **Burp Proxy ON**, intercepted traffic while browsing.
+* Discovered sensitive endpoints:
+  * `/rest/user/login`
+  * `/rest/user/change-password`
+  * `/rest/products/search?q=...`
+* Sent requests to **Burp Repeater** for deeper inspection.
 
-## Technologies Used
+✅ **Learning outcome**: Mapped the app's structure and identified potential injection points.
 
-- Node.js
-- Express.js
-- Sequelize ORM
-- MySQL
-- JSON Web Token (JWT)
-- cookie-session
-- validator
-- helmet
+# 💉 Step 2: SQL Injection & Exploitation
 
----
+## 1. Manual SQLi Testing with Burp
 
-## Authentication & Authorization Flow
+* Intercepted search request:
 
-This app supports:
+```http
+GET /rest/products/search?q=apple
+```
 
--  Signup with email and secure password
--  JWT-based login, stored securely in cookie-session
--  Admin, Moderator, and User role-based access
--  Logout support (session destruction)
+* Sent it to **Repeater** and tested payloads:
+  * `' OR '1'='1`
+  * `';--`
+* Response changed → indicated SQL Injection.
 
----
+## 2. Automated Testing with SQLMap
 
-## Project Setup
-
-### Clone the Repository
+* Saved vulnerable request from Burp to `request.txt`.
+* Ran SQLMap:
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/YOUR_REPO_NAME.git (repo URL)
-cd YOUR_REPO_NAME (Repo Name)
+sqlmap -r request.txt --batch --dbs
 ```
 
-### Install Dependencies
+* Databases enumerated:
+  * `sqlite_master`
+  * `main`
+
+* Extracted tables:
 
 ```bash
-npm install
+sqlmap -r request.txt --tables
 ```
 
-### Configure Database
-
-Edit `config/db.config.js` with your MySQL credentials:
-
-```js
-export default {
-  HOST: "localhost",
-  USER: "your_mysql_user",
-  PASSWORD: "your_mysql_password",
-  DB: "your_db_name",
-  dialect: "mysql",
-  pool: {
-    max: 5,
-    min: 0,
-    acquire: 30000,
-    idle: 10000
-  }
-};
-```
-
-### Start the Server
+* Dumped user credentials:
 
 ```bash
-node server.js
+sqlmap -r request.txt --dump -T Users
 ```
 
+## 3. Mitigation in Real Apps
+
+* Use **parameterized queries / prepared statements**:
+
+```javascript
+User.findOne({ where: { email: emailInput } });
+```
+
+✅ **Learning outcome**: Confirmed SQLi existed, extracted data, and learned how to fix it.
+
+# 🎭 Step 3: CSRF Exploitation
+
+## 1. Identifying CSRF Targets
+
+* Sensitive endpoints:
+  * `/rest/user/change-password?current=&new=&repeat=`
+  * `/rest/user/email`
+* Targeted **Change Password** request.
+
+## 2. Intercepting the Request
+
+* With **Burp Proxy ON**, captured:
+
+```http
+GET /rest/user/change-password?current=test123&new=test123&repeat=test123
+Authorization: Bearer <JWT>
+Cookie: token=<JWT>
+```
+
+* Modified values in **Repeater** → password changed (or flagged by Juice Shop IDS).
+
+
+## 3. Proof of Concept (Exploit HTML)
+
+Created `csrf_pw_reset.html`:
+
+```html
+<html>
+  <body>
+    <img src="http://127.0.0.1:3001/rest/user/change-password?current=test123&new=hacked123&repeat=hacked123">
+  </body>
+</html>
+```
+
+* When opened in a logged-in session → password reset automatically.
+
+
+## 4. Juice Shop IDS
+
+* Some requests blocked with:
+
+```
+Error: Blocked illegal activity by ::ffff:172.17.0.1
+```
+
+* Demonstrates **Intrusion Detection System (IDS)**.
+
+## 5. Mitigation in Real Apps
+
+* Use **POST requests** for sensitive changes.
+* Implement **CSRF tokens** (`csurf` middleware in Node.js).
+* Use `SameSite=Strict` cookies.
+
+✅ **Learning outcome**: Demonstrated CSRF attacks and defenses.
+
 ---
 
-## API Endpoints
+# 📦 Deliverables
 
-| Method | Endpoint             | Description            |
-|--------|----------------------|------------------------|
-| POST   | `/api/auth/signup`   | Register a new user    |
-| POST   | `/api/auth/signin`   | Login and get JWT      |
-| POST   | `/api/auth/signout`  | Destroy user session   |
-| GET    | `/api/test/user`     | Access User board      |
-| GET    | `/api/test/admin`    | Access Admin board     |
-| GET    | `/api/test/mod`      | Access Moderator board |
+## 1. **Ethical Hacking Report** (this document).
 
----
+## 2. **Exploits performed**:
+   * SQL Injection with Burp + SQLMap.
+   * CSRF exploit PoC HTML file.
 
-## Reference to Original Repo
-
-This project is based on:
-
-🔗 [Bezkoder Node.js JWT Auth Example](https://www.bezkoder.com/node-js-express-login-example/)
-
-> This fork enhances it with security hardening, ES modules, and project structure improvements.
-
----
-
-## Future Enhancements
-
-- Add rate limiting / brute-force protection
-- Add CSRF token in cookies
-- Add frontend (React/Vue/Angular) clients
-- Unit testing with Jest
-
----
-
-## Updates – Advanced Security & Final Reporting
-
-I enhanced the **Node.js Express Authentication App** by performing advanced security hardening, logging setup, and penetration testing.  
-
-### 🔹 Security Enhancements
-- **Brute Force Protection** – Implemented rate limiting to block excessive failed login attempts.
-- **Winston Logging** – Added `winston` logger to record security-related events in both console and `security.log`.
-- **Basic Penetration Testing** – Used Nmap to scan service details and checked for unnecessary exposure.
-- **Role Escalation Protection** – Verified that non-admin tokens cannot access admin routes.
-- **Strong Validation** – Continued enforcing strong password & email validation using `validator`.
-- **Helmet.js Middleware** – Applied HTTP security headers to mitigate common vulnerabilities.
-- **HTTPS Recommendation** – App is ready to run behind HTTPS for secure data transmission.
-
-### 🔹 Documentation
-- Updated **Security Checklist** confirming all measures applied.
-- Added **Final Detailed Documentation** for Week 3 work.
-
-### 🔹 Tools Used
-- **Postman** – API testing and role escalation checks.
-- **Nmap** – Port scanning & service fingerprinting.
-- **Winston** – Security and application logging.
-
----
-
-**Outcome:**  
-The application is now more secure, logs critical events, and prevents unauthorized role access & brute-force attacks. All checklist items are marked as passed.
+## 3. **Defensive Coding Notes**:
+   * SQLi → parameterized queries.
+   * CSRF → CSRF tokens + secure cookies.
 
 ## Author
 
